@@ -59,16 +59,31 @@ const BehaviourDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [summaryRes, txRes, insightsRes] = await Promise.all([
+        const [summaryRes, txRes, insightsRes] = await Promise.allSettled([
           api.get('/api/dashboard/summary'),
-          api.get('/api/transactions'),
+          api.get('/api/transactions?limit=200'),
           api.get('/api/insights/summary')
         ]);
 
         if (!isMounted) return;
-        setSummary(summaryRes.data || null);
-        setTransactions(txRes.data?.transactions || []);
-        setInsights(insightsRes.data || null);
+
+        if (summaryRes.status === 'fulfilled') {
+          setSummary(summaryRes.value?.data || null);
+        } else {
+          setSummary(null);
+        }
+
+        if (txRes.status === 'fulfilled') {
+          setTransactions(txRes.value?.data?.transactions || []);
+        } else {
+          setTransactions([]);
+        }
+
+        if (insightsRes.status === 'fulfilled') {
+          setInsights(insightsRes.value?.data || null);
+        } else {
+          setInsights(null);
+        }
       } catch (err) {
         // Interceptor handles the toast
       } finally {
@@ -105,7 +120,7 @@ const BehaviourDashboard = () => {
         categoryToneMap[`${merchant}`.toLowerCase()] ||
         'tone-emerald';
       return {
-        id: t.id,
+        id: t._id || t.id,
         merchant,
         code: t.paymentMethod || t.description || t.category || 'N/A',
         amount: t.amount,

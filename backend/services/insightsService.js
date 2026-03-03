@@ -27,6 +27,8 @@ const getStartOfWeek = (d) => {
 
 const getInsightsSummary = async (userId) => {
     const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     const ninetyDaysAgo = new Date(now);
     ninetyDaysAgo.setDate(now.getDate() - 90);

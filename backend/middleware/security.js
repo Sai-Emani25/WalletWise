@@ -22,6 +22,15 @@ const enforceJsonContent = (req, res, next) => {
         return next();
     }
 
+    // If there is no request body, Content-Type is irrelevant.
+    // This keeps DELETE/POST endpoints with empty bodies functional.
+    const hasBody =
+        req.headers['content-length'] !== undefined ||
+        req.headers['transfer-encoding'] !== undefined;
+    if (!hasBody) {
+        return next();
+    }
+
     // Skip if content-type is json
     if (req.is('application/json')) {
         return next();

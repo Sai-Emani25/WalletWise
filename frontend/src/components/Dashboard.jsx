@@ -1194,13 +1194,13 @@ const Dashboard = () => {
       <AddExpense
         isOpen={showAddExpenseModal}
         onClose={() => setShowAddExpenseModal(false)}
-        onSuccess={() => handleSuccess('expense')}
+        onSuccess={handleAddExpense}
       />
 
       <AddIncome
         isOpen={showAddIncomeModal}
         onClose={() => setShowAddIncomeModal(false)}
-        onSuccess={() => handleSuccess('income')}
+        onSuccess={handleAddIncome}
       />
 
       <SetBudget
