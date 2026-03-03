@@ -1,7 +1,18 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000');
+const rawBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const sanitizedBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+const API_BASE_URL = sanitizedBaseUrl.endsWith('/api')
+  ? sanitizedBaseUrl
+  : `${sanitizedBaseUrl}/api`;
+
+const normalizeApiPath = (url = '') => {
+  if (typeof url !== 'string') return url;
+  if (url === '/api') return '/';
+  if (url.startsWith('/api/')) return url.slice(4);
+  return url;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,6 +22,16 @@ const api = axios.create({
 export const refreshClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true
+});
+
+api.interceptors.request.use((config) => {
+  config.url = normalizeApiPath(config.url);
+  return config;
+});
+
+refreshClient.interceptors.request.use((config) => {
+  config.url = normalizeApiPath(config.url);
+  return config;
 });
 
 // Routes that should NOT trigger global error toasts (they handle their own errors)
@@ -49,7 +70,7 @@ api.interceptors.response.use(
       error.response?.data?.error ||
       'Something went wrong. Please try again.';
 
-    // ── 401: Try token refresh once, block other requests during refresh, force logout if fail
+    // 401: try token refresh once, block other requests during refresh, force logout if fail
     if (status === 401 && !originalRequest?._retry && !isSilentRoute(originalRequest?.url)) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -65,7 +86,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await refreshClient.post('/api/auth/refresh', {});
+        await refreshClient.post('/auth/refresh', {});
         return api(originalRequest);
       } catch (err) {
         processQueue(err);
@@ -81,7 +102,7 @@ api.interceptors.response.use(
 
         // 4. Force redirection outside generic React flow
         if (window.location.pathname !== '/login') {
-          toast.error("Session expired. Please log in again.");
+          toast.error('Session expired. Please log in again.');
           window.location.href = '/login';
         }
 
@@ -91,7 +112,7 @@ api.interceptors.response.use(
       }
     }
 
-    // ── 400 / 4xx / 500: Show a global toast for non-silent routes ──────────
+    // 400 / 4xx / 500: show a global toast for non-silent routes
     if (!isSilentRoute(originalRequest?.url)) {
       if (status >= 400 && status < 500 && status !== 401) {
         toast.error(message);

@@ -18,12 +18,21 @@ describe('API Client Interceptor', () => {
         mockRefresh.restore();
     });
 
+    test('normalizes legacy /api prefix in request paths', async () => {
+        mockApi.onGet('/dashboard/summary').replyOnce(200, { ok: true });
+
+        const response = await api.get('/api/dashboard/summary');
+
+        expect(response.status).toBe(200);
+        expect(response.data).toEqual({ ok: true });
+    });
+
     test('retries request on 401 and successful refresh', async () => {
         // 1. Initial request fails with 401
         mockApi.onGet('/protected').replyOnce(401);
 
         // 2. Refresh request succeeds
-        mockRefresh.onPost('/api/auth/refresh').reply(200);
+        mockRefresh.onPost('/auth/refresh').reply(200);
 
         // 3. Retry request succeeds
         mockApi.onGet('/protected').replyOnce(200, { data: 'success' });
@@ -36,7 +45,7 @@ describe('API Client Interceptor', () => {
 
         // Verify refresh was called
         expect(mockRefresh.history.post.length).toBe(1);
-        expect(mockRefresh.history.post[0].url).toBe('/api/auth/refresh');
+        expect(mockRefresh.history.post[0].url).toBe('/auth/refresh');
     });
 
     test('rejects request on 401 and failed refresh', async () => {
@@ -44,7 +53,7 @@ describe('API Client Interceptor', () => {
         mockApi.onGet('/protected').replyOnce(401);
 
         // 2. Refresh request fails
-        mockRefresh.onPost('/api/auth/refresh').reply(401);
+        mockRefresh.onPost('/auth/refresh').reply(401);
 
         // Execute request expecting rejection
         await expect(api.get('/protected')).rejects.toThrow();
